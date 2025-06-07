@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上市公司薪資分析儀表板</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <style>
+        :root {
+            --primary-50: #f0f9ff;
+            --primary-100: #e0f2fe;
+            --primary-500: #0ea5e9;
+            --primary-600: #0284c7;
+            --primary-700: #0369a1;
+            --primary-900: #0c4a6e;
+            
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-400: #94a3b8;
+            --slate-500: #64748b;
+            --slate-600: #475569;
+            --slate-700: #334155;
+            --slate-800: #1e293b;
+            --slate-900: #0f172a;
+            
+            --green-100: #dcfce7;
+            --green-500: #22c55e;
+            --green-600: #16a34a;
+            --red-500: #ef4444;
+            --red-600: #dc2626;
+            
+            --primary-300: #7dd3fc;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--slate-50);
+            color: var(--slate-700);
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-bottom: 1px solid var(--slate-200);
+            padding: 2rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .subtitle {
+            color: var(--slate-500);
+            font-size: 1rem;
+            font-weight: 400;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--slate-100);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-500), var(--primary-600));
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--slate-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .card-value {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: var(--slate-900);
+            margin: 0.75rem 0;
+            letter-spacing: -0.025em;
+        }
+
+        .card-desc {
+            font-size: 0.875rem;
+            color: var(--slate-500);
+            margin-bottom: 0.25rem;
+        }
+
+        .chart-container {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--slate-100);
+            margin-bottom: 2rem;
+        }
+
+        .chart-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-bottom: 2rem;
+            letter-spacing: -0.025em;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 500px;
+            margin-bottom: 2rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 6rem 0;
+            color: var(--slate-500);
+            font-size: 1.125rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 2rem;
+            background: var(--slate-100);
+            padding: 0.5rem;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 1rem 2rem;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--slate-600);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .tab:hover {
+            color: var(--slate-800);
+        }
+
+        .tab.active {
+            background: #ffffff;
+            color: var(--primary-700);
+            box-shadow: var(--shadow-sm);
+            transform: scale(1.02);
+        }
+
+        .filters {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--slate-100);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--slate-700);
+            white-space: nowrap;
+        }
+
+        select, input[type="text"] {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--slate-200);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--slate-700);
+            background: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        select:hover, input[type="text"]:hover {
+            border-color: var(--slate-300);
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-600);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: var(--primary-700);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .growth-positive {
+            color: var(--green-600);
+            font-weight: 600;
+        }
+
+        .growth-negative {
+            color: var(--red-600);
+            font-weight: 600;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--slate-50);
+            border: 2px solid var(--slate-200);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            border-color: var(--primary-300);
+            background: var(--primary-50);
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--slate-500);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--slate-900);
+            margin-top: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        /* 搜尋頁面專用樣式 */
+        .search-container {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--slate-100);
+        }
+
+        .search-input-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            max-width: 500px;
+        }
+
+        .search-input-group input {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .company-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .detail-section {
+            background: var(--slate-50);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid var(--slate-200);
+        }
+
+        .detail-section h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .detail-section h3::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--primary-500);
+            border-radius: 2px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-size: 0.875rem;
+            color: var(--slate-600);
+            font-weight: 500;
+        }
+
+        .detail-value {
+            font-size: 1rem;
+            color: var(--slate-900);
+            font-weight: 700;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .filter-group {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .tabs {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+            
+            .chart-wrapper {
+                height: 300px;
+            }
+            
+            .search-input-group {
+                flex-direction: column;
+                align-items: stretch;
+                max-width: none;
+            }
+            
+            .search-input-group input {
+                min-width: auto;
+            }
+        }
+
+        /* 載入動畫 */
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--slate-300);
+            border-radius: 50%;
+            border-top-color: var(--primary-500);
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 卡片圖標 */
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .icon-salary { background: var(--primary-100); color: var(--primary-600); }
+        .icon-growth { background: var(--green-100); color: var(--green-600); }
+        .icon-company { background: var(--slate-100); color: var(--slate-600); }
+
+        /* 提升圖表容器的視覺效果 */
+        .chart-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-500), var(--primary-600));
+            border-radius: 20px 20px 0 0;
+        }
+
+        /* 公司查詢排名卡片樣式 */
+        .ranking-card {
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+            color: white;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ranking-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .ranking-number {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .ranking-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .ranking-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .percentile-badge {
+            display: inline-block;
+            background: var(--green-500);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-left: 0.5rem;
+        }
+
+        .industry-chart-container {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--slate-100);
+        }
+
+        .highlighted-bar {
+            background: var(--primary-600) !important;
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.4);
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .ranking-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+            
+            .ranking-number {
+                font-size: 2rem;
+            }
+        }
+
+        /* 頁尾樣式 */
+        .footer {
+            background: var(--slate-50);
+            border-top: 1px solid var(--slate-200);
+            padding: 1.5rem 0;
+            margin-top: 3rem;
+            text-align: center;
+            color: var(--slate-500);
+            font-size: 0.875rem;
+        }
+
+        .footer a {
+            color: var(--primary-600);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .footer-divider {
+            margin: 0 0.5rem;
+            color: var(--slate-300);
+        }
+
+        @media (max-width: 768px) {
+            .footer {
+                padding: 1rem 0;
+            }
+            
+            .footer-content {
+                padding: 0 1rem;
+            }
+        }
+
+        /* 快速搜尋按鈕樣式 */
+        .quick-search-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--slate-200);
+        }
+
+        .quick-search-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--slate-700);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .quick-search-buttons {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .quick-search-btn {
+            padding: 0.5rem 1rem;
+            background: var(--slate-100);
+            color: var(--slate-700);
+            border: 2px solid var(--slate-200);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .quick-search-btn:hover {
+            background: var(--primary-50);
+            border-color: var(--primary-300);
+            color: var(--primary-700);
+            transform: translateY(-1px);
+        }
+
+        .quick-search-btn.popular {
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+            color: white;
+            border-color: var(--primary-600);
+        }
+
+        .quick-search-btn.popular:hover {
+            background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+            border-color: var(--primary-700);
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .quick-search-buttons {
+                gap: 0.5rem;
+            }
+            
+            .quick-search-btn {
+                min-width: 70px;
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1>113年度上市上櫃公司薪資分析儀表板</h1>
+            <p class="subtitle">資料涵蓋上市及上櫃公司薪資統計資訊</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="loading" id="loading">載入中...</div>
+        
+        <div id="dashboard" style="display: none;">
+            <!-- 公司類型選擇 -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label class="filter-label">公司類型：</label>
+                    <select id="companyTypeFilter">
+                        <option value="all">全部公司</option>
+                        <option value="listed">上市公司</option>
+                        <option value="otc">上櫃公司</option>
+                    </select>
+                    <label class="filter-label" style="margin-left: 2rem;">產業類別：</label>
+                    <select id="industryFilter">
+                        <option value="all">所有產業</option>
+                    </select>
+                    <label class="filter-label" style="margin-left: 2rem;">排序數量：</label>
+                    <select id="topNFilter">
+                        <option value="10">前 10 名</option>
+                        <option value="20">前 20 名</option>
+                        <option value="30">前 30 名</option>
+                        <option value="50">前 50 名</option>
+                        <option value="100">前 100 名</option>
+                        <option value="all">全部公司</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 排序方向選擇 -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label class="filter-label">排序方向：</label>
+                    <select id="sortDirectionFilter">
+                        <option value="desc">由高至低</option>
+                        <option value="asc">由低至高</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 標籤切換 -->
+            <div class="tabs">
+                <button class="tab active" data-tab="company">公司排行</button>
+                <button class="tab" data-tab="industry">產業分析</button>
+                <button class="tab" data-tab="search">公司查詢</button>
+            </div>
+
+            <!-- 公司排行圖表 -->
+            <div id="companyCharts" class="tab-content">
+                <div class="chart-container">
+                    <h2 class="chart-title">公司薪資排行榜 (113年度)</h2>
+                    <div class="chart-wrapper">
+                        <canvas id="topSalaryChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h2 class="chart-title">公司薪資成長率排行榜</h2>
+                    <div class="chart-wrapper">
+                        <canvas id="topGrowthChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 產業分析圖表 -->
+            <div id="industryCharts" class="tab-content" style="display: none;">
+                <div class="chart-container">
+                    <h2 class="chart-title">產業平均薪資排行 (113年度)</h2>
+                    <div class="chart-wrapper">
+                        <canvas id="industryAvgChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h2 class="chart-title">產業薪資成長率排行</h2>
+                    <div class="chart-wrapper">
+                        <canvas id="industryGrowthChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 公司查詢頁面 -->
+            <div id="searchCharts" class="tab-content" style="display: none;">
+                <div class="search-container">
+                    <h2 class="chart-title">🔍 公司查詢</h2>
+                    <p style="color: var(--slate-500); margin-bottom: 2rem;">輸入公司名稱來查詢詳細的薪資資訊和排名狀況</p>
+                    <div class="search-input-group">
+                        <input type="text" id="companySearch" placeholder="請輸入公司名稱，例如：台積電、鴻海">
+                        <button id="searchButton">查詢</button>
+                    </div>
+                    
+                    <!-- 快速搜尋按鈕 -->
+                    <div class="quick-search-section">
+                        <div class="quick-search-title">
+                            <span>💡 你可以搜尋：</span>
+                        </div>
+                        <div class="quick-search-buttons" id="quickSearchButtons">
+                            <!-- 按鈕會由 JavaScript 動態生成 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="searchResults" class="chart-container" style="display: none;">
+                    <h2 class="chart-title">📊 公司詳細資訊</h2>
+                    <div id="companyDetails"></div>
+                </div>
+            </div>
+
+            <!-- 統計卡片 -->
+            <div class="dashboard" id="statsCards"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>
+                資料來源：
+                <a href="https://www.twse.com.tw/zh/" target="_blank">臺灣證券交易所</a>
+                <span class="footer-divider">|</span>
+                <a href="https://www.tpex.org.tw/web/index.php" target="_blank">證券櫃檯買賣中心</a>
+            </p>
+            <p style="margin-top: 0.5rem; font-size: 0.75rem;">
+                本資料僅供參考，實際薪資資訊請以各公司公告為準
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        let allData = [];
+        let companyCharts = {};
+        let industryCharts = {};
+
+        async function loadData() {
+            try {
+                // 載入上市公司資料
+                const listedResponse = await fetch('113上市薪資.csv');
+                const listedBuffer = await listedResponse.arrayBuffer();
+                const listedText = new TextDecoder('big5').decode(listedBuffer);
+                const listedData = Papa.parse(listedText, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true
+                }).data.map(row => ({
+                    ...row,
+                    type: 'listed'
+                }));
+
+                // 載入上櫃公司資料
+                const otcResponse = await fetch('113上櫃薪資.csv');
+                const otcBuffer = await otcResponse.arrayBuffer();
+                const otcText = new TextDecoder('big5').decode(otcBuffer);
+                const otcData = Papa.parse(otcText, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true
+                }).data.map(row => ({
+                    ...row,
+                    type: 'otc'
+                }));
+
+                // 合併資料並清理
+                allData = [...listedData, ...otcData].map(row => {
+                    const salary113 = typeof row['公司年度資訊-平均員工薪資費用-113年度(仟元/人)'] === 'string' 
+                        ? parseFloat(row['公司年度資訊-平均員工薪資費用-113年度(仟元/人)'].trim()) / 10
+                        : row['公司年度資訊-平均員工薪資費用-113年度(仟元/人)'] / 10;
+                    
+                    const salary112 = typeof row['公司年度資訊-平均員工薪資費用-112年度(仟元/人)'] === 'string'
+                        ? parseFloat(row['公司年度資訊-平均員工薪資費用-112年度(仟元/人)'].trim()) / 10
+                        : row['公司年度資訊-平均員工薪資費用-112年度(仟元/人)'] / 10;
+                    
+                    const growthRate = salary112 > 0 ? ((salary113 - salary112) / salary112 * 100) : 0;
+                    
+                    return {
+                        type: row.type,
+                        industry: row['產業類別'],
+                        company: row['公司名稱'],
+                        salary113: salary113,
+                        salary112: salary112,
+                        growthRate: growthRate
+                    };
+                }).filter(row => row.salary113 > 0 && row.salary112 > 0);
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+
+                initializeFilters();
+                updateStats();
+                createCharts();
+                
+            } catch (error) {
+                console.error('載入資料失敗:', error);
+                document.getElementById('loading').innerHTML = '載入資料失敗，請確認檔案是否存在';
+            }
+        }
+
+        function initializeFilters() {
+            // 填充產業選項
+            const industries = _.uniq(allData.map(d => d.industry)).sort();
+            const industrySelect = document.getElementById('industryFilter');
+            industries.forEach(industry => {
+                const option = document.createElement('option');
+                option.value = industry;
+                option.textContent = industry;
+                industrySelect.appendChild(option);
+            });
+
+            // 綁定事件
+            document.getElementById('companyTypeFilter').addEventListener('change', updateCharts);
+            industrySelect.addEventListener('change', updateCharts);
+            document.getElementById('topNFilter').addEventListener('change', updateCharts);
+            document.getElementById('sortDirectionFilter').addEventListener('change', updateCharts);
+
+            // 標籤切換
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const tabName = this.dataset.tab;
+                    document.getElementById('companyCharts').style.display = tabName === 'company' ? 'block' : 'none';
+                    document.getElementById('industryCharts').style.display = tabName === 'industry' ? 'block' : 'none';
+                    document.getElementById('searchCharts').style.display = tabName === 'search' ? 'block' : 'none';
+                });
+            });
+
+            // 公司查詢功能
+            document.getElementById('searchButton').addEventListener('click', searchCompany);
+            document.getElementById('companySearch').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') searchCompany();
+            });
+
+            // 初始化快速搜尋按鈕
+            initializeQuickSearchButtons();
+        }
+
+        function initializeQuickSearchButtons() {
+            // 熱門公司（固定）
+            const popularCompanies = ['台積電', '聯發科'];
+            
+            // 從所有公司中隨機選擇3家（排除熱門公司）
+            const otherCompanies = allData
+                .filter(d => !popularCompanies.some(popular => d.company.includes(popular)))
+                .map(d => d.company);
+            
+            const shuffled = _.shuffle(otherCompanies);
+            const randomCompanies = shuffled.slice(0, 3);
+            
+            const allQuickSearchCompanies = [...popularCompanies, ...randomCompanies];
+            
+            const quickSearchContainer = document.getElementById('quickSearchButtons');
+            quickSearchContainer.innerHTML = '';
+            
+            allQuickSearchCompanies.forEach((company, index) => {
+                const button = document.createElement('button');
+                button.className = `quick-search-btn ${index < 2 ? 'popular' : ''}`;
+                button.textContent = company;
+                button.addEventListener('click', () => {
+                    document.getElementById('companySearch').value = company;
+                    searchCompany();
+                });
+                quickSearchContainer.appendChild(button);
+            });
+        }
+
+        function searchCompany() {
+            const searchTerm = document.getElementById('companySearch').value.trim();
+            if (!searchTerm) {
+                alert('請輸入公司名稱');
+                return;
+            }
+
+            const company = allData.find(d => d.company.includes(searchTerm));
+            if (!company) {
+                alert('找不到該公司，請檢查公司名稱是否正確');
+                return;
+            }
+
+            // 計算排名
+            const totalCompanies = allData.length;
+            const typeCompanies = allData.filter(d => d.type === company.type).length;
+            const salaryRank = allData.filter(d => d.salary113 > company.salary113).length + 1;
+            const growthRank = allData.filter(d => d.growthRate > company.growthRate).length + 1;
+            const typeRank = allData.filter(d => d.type === company.type && d.salary113 > company.salary113).length + 1;
+
+            // 計算百分位
+            const salaryPercentile = Math.round((1 - (salaryRank - 1) / totalCompanies) * 100);
+            const growthPercentile = Math.round((1 - (growthRank - 1) / totalCompanies) * 100);
+
+            // 取得同產業公司資料
+            const industryCompanies = allData.filter(d => d.industry === company.industry);
+            const industryRank = industryCompanies.filter(d => d.salary113 > company.salary113).length + 1;
+
+            const details = document.getElementById('companyDetails');
+            details.innerHTML = `
+                <!-- 突出顯示的排名資訊 -->
+                <div class="ranking-grid">
+                    <div class="ranking-card">
+                        <div class="ranking-number">#${salaryRank}</div>
+                        <div class="ranking-label">整體薪資排名</div>
+                        <div class="ranking-label" style="font-size: 0.75rem; margin-top: 0.25rem;">
+                            共 ${totalCompanies} 家公司
+                        </div>
+                    </div>
+                    <div class="ranking-card">
+                        <div class="ranking-number">#${typeRank}</div>
+                        <div class="ranking-label">${company.type === 'listed' ? '上市' : '上櫃'}公司排名</div>
+                        <div class="ranking-label" style="font-size: 0.75rem; margin-top: 0.25rem;">
+                            共 ${typeCompanies} 家公司
+                        </div>
+                    </div>
+                    <div class="ranking-card">
+                        <div class="ranking-number">#${industryRank}</div>
+                        <div class="ranking-label">產業內排名</div>
+                        <div class="ranking-label" style="font-size: 0.75rem; margin-top: 0.25rem;">
+                            共 ${industryCompanies.length} 家公司
+                        </div>
+                    </div>
+                    <div class="ranking-card">
+                        <div class="ranking-number">前${salaryPercentile}%</div>
+                        <div class="ranking-label">薪資百分位</div>
+                        <div class="ranking-label" style="font-size: 0.75rem; margin-top: 0.25rem;">
+                            超越 ${Math.round((1 - salaryPercentile/100) * totalCompanies)} 家公司
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 同產業公司對比圖表 -->
+                <div class="industry-chart-container">
+                    <h3 style="margin-bottom: 1.5rem; color: var(--slate-900); font-size: 1.25rem;">📊 ${company.industry} 產業薪資對比</h3>
+                    <div style="position: relative; height: 400px;">
+                        <canvas id="industryComparisonChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="company-detail-grid">
+                    <div class="detail-section">
+                        <h3>📈 基本資訊</h3>
+                        <div class="detail-item">
+                            <span class="detail-label">公司名稱</span>
+                            <span class="detail-value">${company.company}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">公司類型</span>
+                            <span class="detail-value">${company.type === 'listed' ? '上市公司' : '上櫃公司'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">產業類別</span>
+                            <span class="detail-value">${company.industry}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>💰 薪資資訊</h3>
+                        <div class="detail-item">
+                            <span class="detail-label">113年度平均薪資</span>
+                            <span class="detail-value">${company.salary113.toFixed(1)} 萬元/人</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">112年度平均薪資</span>
+                            <span class="detail-value">${company.salary112.toFixed(1)} 萬元/人</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">薪資成長率</span>
+                            <span class="detail-value ${company.growthRate >= 0 ? 'growth-positive' : 'growth-negative'}">
+                                ${company.growthRate >= 0 ? '+' : ''}${company.growthRate.toFixed(1)}%
+                                <span class="percentile-badge">前${growthPercentile}%</span>
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">薪資變化</span>
+                            <span class="detail-value ${company.growthRate >= 0 ? 'growth-positive' : 'growth-negative'}">
+                                ${company.growthRate >= 0 ? '+' : ''}${(company.salary113 - company.salary112).toFixed(1)} 萬元
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>🏆 詳細排名</h3>
+                        <div class="detail-item">
+                            <span class="detail-label">整體薪資排名</span>
+                            <span class="detail-value">第 ${salaryRank} 名 / ${totalCompanies} 家 <span class="percentile-badge">前${salaryPercentile}%</span></span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">${company.type === 'listed' ? '上市' : '上櫃'}公司排名</span>
+                            <span class="detail-value">第 ${typeRank} 名 / ${typeCompanies} 家</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">產業內排名</span>
+                            <span class="detail-value">第 ${industryRank} 名 / ${industryCompanies.length} 家</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">成長率排名</span>
+                            <span class="detail-value">第 ${growthRank} 名 <span class="percentile-badge">前${growthPercentile}%</span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>📊 市場比較</h3>
+                        <div class="detail-item">
+                            <span class="detail-label">vs 整體平均</span>
+                            <span class="detail-value ${company.salary113 > _.meanBy(allData, 'salary113') ? 'growth-positive' : 'growth-negative'}">
+                                ${company.salary113 > _.meanBy(allData, 'salary113') ? '高於' : '低於'} ${Math.abs(company.salary113 - _.meanBy(allData, 'salary113')).toFixed(1)} 萬元
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">vs 產業平均</span>
+                            <span class="detail-value ${company.salary113 > _.meanBy(industryCompanies, 'salary113') ? 'growth-positive' : 'growth-negative'}">
+                                ${company.salary113 > _.meanBy(industryCompanies, 'salary113') ? '高於' : '低於'} ${Math.abs(company.salary113 - _.meanBy(industryCompanies, 'salary113')).toFixed(1)} 萬元
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">vs 同類型平均</span>
+                            <span class="detail-value ${company.salary113 > _.meanBy(allData.filter(d => d.type === company.type), 'salary113') ? 'growth-positive' : 'growth-negative'}">
+                                ${company.salary113 > _.meanBy(allData.filter(d => d.type === company.type), 'salary113') ? '高於' : '低於'} ${Math.abs(company.salary113 - _.meanBy(allData.filter(d => d.type === company.type), 'salary113')).toFixed(1)} 萬元
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 創建同產業對比圖表
+            createIndustryComparisonChart(company, industryCompanies);
+
+            document.getElementById('searchResults').style.display = 'block';
+            document.getElementById('searchResults').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function createIndustryComparisonChart(targetCompany, industryCompanies) {
+            // 按薪資排序，取前20名或全部（如果少於20家）
+            const sortedCompanies = _.orderBy(industryCompanies, ['salary113'], ['desc']);
+            const displayCompanies = sortedCompanies.slice(0, Math.min(20, sortedCompanies.length));
+            
+            const ctx = document.getElementById('industryComparisonChart').getContext('2d');
+            
+            // 如果已有圖表，先銷毀
+            if (window.industryComparisonChart && typeof window.industryComparisonChart.destroy === 'function') {
+                window.industryComparisonChart.destroy();
+            }
+            
+            window.industryComparisonChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: displayCompanies.map(d => d.company === targetCompany.company ? `${d.company} ⭐` : d.company),
+                    datasets: [{
+                        label: '113年度平均薪資',
+                        data: displayCompanies.map(d => d.salary113),
+                        backgroundColor: displayCompanies.map(d => 
+                            d.company === targetCompany.company ? '#0ea5e9' : '#94a3b8'
+                        ),
+                        borderColor: displayCompanies.map(d => 
+                            d.company === targetCompany.company ? '#0284c7' : '#64748b'
+                        ),
+                        borderWidth: displayCompanies.map(d => 
+                            d.company === targetCompany.company ? 3 : 1
+                        ),
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const rank = context.dataIndex + 1;
+                                    return `${context.parsed.x.toFixed(1)} 萬元/人 (第${rank}名)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { display: true, color: '#f3f4f6' },
+                            ticks: {
+                                callback: (value) => value.toFixed(0) + '萬'
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: {
+                                maxRotation: 0,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        bar: {
+                            borderSkipped: false,
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateStats() {
+            const statsContainer = document.getElementById('statsCards');
+            const companyType = document.getElementById('companyTypeFilter').value;
+            let filteredData = companyType === 'all' ? allData : allData.filter(d => d.type === companyType);
+            
+            // 計算統計數據
+            const avgSalary = _.meanBy(filteredData, 'salary113');
+            const maxSalaryCompany = _.maxBy(filteredData, 'salary113');
+            const minSalaryCompany = _.minBy(filteredData, 'salary113');
+            const maxGrowthCompany = _.maxBy(filteredData, 'growthRate');
+            const minGrowthCompany = _.minBy(filteredData, 'growthRate');
+            const totalCompanies = filteredData.length;
+
+            const stats = [
+                {
+                    title: '整體平均薪資',
+                    value: Math.round(avgSalary).toLocaleString(),
+                    unit: '萬元/人',
+                    desc: '113年度平均'
+                },
+                {
+                    title: '最高薪資公司',
+                    value: maxSalaryCompany.company,
+                    unit: `${maxSalaryCompany.salary113.toLocaleString()} 萬元/人`,
+                    desc: '113年度薪資冠軍'
+                },
+                {
+                    title: '最低薪資公司',
+                    value: minSalaryCompany.company,
+                    unit: `${minSalaryCompany.salary113.toLocaleString()} 萬元/人`,
+                    desc: '113年度薪資最低'
+                },
+                {
+                    title: '最高成長率',
+                    value: maxGrowthCompany.company,
+                    unit: `+${maxGrowthCompany.growthRate.toFixed(1)}%`,
+                    desc: '相較112年度成長最多'
+                },
+                {
+                    title: '最低成長率',
+                    value: minGrowthCompany.company,
+                    unit: `${minGrowthCompany.growthRate.toFixed(1)}%`,
+                    desc: '相較112年度成長最少'
+                },
+                {
+                    title: '涵蓋公司數',
+                    value: totalCompanies.toLocaleString(),
+                    unit: '家',
+                    desc: '有效資料之公司'
+                }
+            ];
+
+            statsContainer.innerHTML = stats.map(stat => `
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">${stat.title}</h3>
+                    </div>
+                    <div class="card-value">${stat.value}</div>
+                    <div class="card-desc">${stat.unit}</div>
+                    <div class="card-desc">${stat.desc}</div>
+                </div>
+            `).join('');
+        }
+
+        function createCharts() {
+            // 設定圖表預設值
+            Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif';
+            
+            updateCharts();
+        }
+
+        function updateCharts() {
+            const companyType = document.getElementById('companyTypeFilter').value;
+            const industry = document.getElementById('industryFilter').value;
+            const topN = document.getElementById('topNFilter').value;
+            const sortDirection = document.getElementById('sortDirectionFilter').value;
+            
+            let filteredData = allData;
+            if (companyType !== 'all') {
+                filteredData = filteredData.filter(d => d.type === companyType);
+            }
+            if (industry !== 'all') {
+                filteredData = filteredData.filter(d => d.industry === industry);
+            }
+            
+            // 更新公司圖表
+            updateCompanyCharts(filteredData, topN, sortDirection);
+            
+            // 更新產業圖表
+            updateIndustryCharts(topN, sortDirection);
+        }
+
+        function updateCompanyCharts(data, topN, sortDirection) {
+            const order = sortDirection === 'desc' ? ['desc'] : ['asc'];
+            const topSalary = _.orderBy(data, ['salary113'], order);
+            const topGrowth = _.orderBy(data, ['growthRate'], order);
+            
+            const displayCount = topN === 'all' ? data.length : parseInt(topN);
+            
+            if (companyCharts.salary) companyCharts.salary.destroy();
+            
+            const salaryCtx = document.getElementById('topSalaryChart').getContext('2d');
+            companyCharts.salary = new Chart(salaryCtx, {
+                type: 'bar',
+                data: {
+                    labels: topSalary.slice(0, displayCount).map(d => d.company),
+                    datasets: [{
+                        label: '113年度平均薪資',
+                        data: topSalary.slice(0, displayCount).map(d => d.salary113),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.parsed.x.toLocaleString()} 萬元/人`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { display: true, color: '#f3f4f6' },
+                            ticks: {
+                                callback: (value) => value.toLocaleString()
+                            }
+                        },
+                        y: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            if (companyCharts.growth) companyCharts.growth.destroy();
+            
+            const growthCtx = document.getElementById('topGrowthChart').getContext('2d');
+            companyCharts.growth = new Chart(growthCtx, {
+                type: 'bar',
+                data: {
+                    labels: topGrowth.slice(0, displayCount).map(d => d.company),
+                    datasets: [{
+                        label: '薪資成長率',
+                        data: topGrowth.slice(0, displayCount).map(d => d.growthRate),
+                        backgroundColor: topGrowth.slice(0, displayCount).map(d => d.growthRate > 0 ? '#10b981' : '#ef4444'),
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.parsed.x.toFixed(1)}%`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { display: true, color: '#f3f4f6' },
+                            ticks: {
+                                callback: (value) => value + '%'
+                            }
+                        },
+                        y: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateIndustryCharts(topN, sortDirection) {
+            const order = sortDirection === 'desc' ? ['desc'] : ['asc'];
+            
+            // 計算產業平均
+            const industryGroups = _.groupBy(allData, 'industry');
+            const industryStats = Object.entries(industryGroups).map(([industry, companies]) => {
+                const avgSalary113 = _.meanBy(companies, 'salary113');
+                const avgSalary112 = _.meanBy(companies, 'salary112');
+                const avgGrowth = ((avgSalary113 - avgSalary112) / avgSalary112 * 100);
+                
+                return {
+                    industry: industry,
+                    avgSalary113: avgSalary113,
+                    avgGrowth: avgGrowth,
+                    count: companies.length
+                };
+            });
+
+            const displayCount = topN === 'all' ? industryStats.length : parseInt(topN);
+            
+            // 產業平均薪資
+            const topIndustries = _.orderBy(industryStats, ['avgSalary113'], order).slice(0, displayCount);
+            
+            if (industryCharts.avg) industryCharts.avg.destroy();
+            
+            const avgCtx = document.getElementById('industryAvgChart').getContext('2d');
+            industryCharts.avg = new Chart(avgCtx, {
+                type: 'bar',
+                data: {
+                    labels: topIndustries.map(d => `${d.industry} (${d.count}家)`),
+                    datasets: [{
+                        label: '產業平均薪資',
+                        data: topIndustries.map(d => Math.round(d.avgSalary113)),
+                        backgroundColor: '#8b5cf6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.parsed.x.toLocaleString()} 萬元/人`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { display: true, color: '#f3f4f6' },
+                            ticks: {
+                                callback: (value) => value.toLocaleString()
+                            }
+                        },
+                        y: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // 產業成長率
+            const topGrowthIndustries = _.orderBy(industryStats, ['avgGrowth'], order).slice(0, displayCount);
+            
+            if (industryCharts.growth) industryCharts.growth.destroy();
+            
+            const growthCtx = document.getElementById('industryGrowthChart').getContext('2d');
+            industryCharts.growth = new Chart(growthCtx, {
+                type: 'bar',
+                data: {
+                    labels: topGrowthIndustries.map(d => d.industry),
+                    datasets: [{
+                        label: '產業平均成長率',
+                        data: topGrowthIndustries.map(d => d.avgGrowth),
+                        backgroundColor: topGrowthIndustries.map(d => d.avgGrowth > 0 ? '#10b981' : '#ef4444'),
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.parsed.x.toFixed(1)}%`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { display: true, color: '#f3f4f6' },
+                            ticks: {
+                                callback: (value) => value + '%'
+                            }
+                        },
+                        y: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 載入資料
+        loadData();
+    </script>
+</body>
+</html>
