@@ -651,18 +651,6 @@
             transform: translateY(-1px);
         }
 
-        .quick-search-btn.popular {
-            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
-            color: white;
-            border-color: var(--primary-600);
-        }
-
-        .quick-search-btn.popular:hover {
-            background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
-            border-color: var(--primary-700);
-            transform: translateY(-1px);
-        }
-
         @media (max-width: 768px) {
             .quick-search-buttons {
                 gap: 0.5rem;
@@ -938,7 +926,7 @@
             
             allQuickSearchCompanies.forEach((company, index) => {
                 const button = document.createElement('button');
-                button.className = `quick-search-btn ${index < 2 ? 'popular' : ''}`;
+                button.className = 'quick-search-btn';
                 button.textContent = company;
                 button.addEventListener('click', () => {
                     document.getElementById('companySearch').value = company;
