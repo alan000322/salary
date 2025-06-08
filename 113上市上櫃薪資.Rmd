@@ -180,7 +180,7 @@ df_industry_1 <- df_1 %>% #view()
   arrange(desc(產業平均薪資)) 
 
 # 繪圖
-df_industry %>%
+df_industry_1 %>%
   mutate(
     產業平均薪資 = 產業平均薪資 / 10,  # 轉換為萬元
     產業別 = fct_reorder(產業別, 產業平均薪資)
