@@ -1,0 +1,350 @@
+---
+title: "113上市上櫃薪資"
+author: "chiatzu"
+date: '2025-06-08'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(ggplot2)
+library(showtext)
+library(ggthemes)
+library(lubridate)
+library(patchwork)
+
+library(sf)
+
+
+
+library(hrbrthemes)
+library(GGally)
+library(viridis)
+
+library(httr)
+library(rvest) # for traversing html structure
+library(jsonlite)
+
+showtext_auto(enable = TRUE)
+font_add("GenJyuuGothic Heavy","GenJyuuGothic-Heavy.ttf")
+font_add("GenJyuuGothic Medium","GenJyuuGothic-Medium.ttf")
+font_add("GenJyuuGothic Light", "GenJyuuGothic-Light.ttf")
+font_add("jf-jinxuan-3.0 ExtraBold","jf-jinxuan-3.0-extrabold.otf")
+font_add("jf-jinxuan-3.0 ExtraBold","jf-jinxuan-3.0-extrabold.otf")
+font_add("jf-jinxuan-3.0 medium","jf-jinxuan-3.0-medium.otf")
+font_add("jf-jinxuan-3.0 Book", "jf-jinxuan-3.0-book.otf")
+font_add("jf-jinxuanlatte-2.0 Heavy", "jf-jinxuanlatte-2.0-heavy.otf")
+font_add("burnfont", "burnfont-1.2.otf")
+
+
+colorstyle_default <- "#5151A2"
+colorstyle_default_dark <- ""
+
+th <- 
+  theme(
+    plot.title = element_text(size=28, family="jf-jinxuanlatte-2.0 Heavy", color="black"),
+    plot.subtitle = element_text(size=17,family="jf-jinxuan-3.0 medium", 
+      margin = margin(1, 1, 1, 0), 
+      # margin = margin(7, 1, 20, 0), 
+      color=colorstyle_default ),
+    axis.title.x = element_text(size=16,family="jf-jinxuan-3.0 ExtraBold", color="black"),
+    axis.title.y = element_text(size=16,family="jf-jinxuan-3.0 ExtraBold", color="black"),
+    axis.text.x = element_text(size=12,family="jf-jinxuan-3.0 medium", color="black"),
+    axis.text.y = element_text(size=10,family="jf-jinxuan-3.0 medium", color="black"),
+    legend.text = element_text(size=10,family="jf-jinxuan-3.0 medium", color=colorstyle_default),
+    legend.title = element_text(size=12,family="jf-jinxuan-3.0 medium", color=colorstyle_default),
+    plot.caption  = element_text(color="#888888",size=8,family="jf-jinxuan-3.0 medium", ), #hjust = 1.1, vjust=-7
+    plot.title.position = "plot", # 讓字從最左邊出現
+    plot.margin = margin(2.5, 2.5, 2.5, 2.5, "lines"), # 調整主圖表外的margin
+    legend.background = element_rect(fill = "#FFFFFF", color="black"),
+    plot.background = element_rect( fill = "#FFFFFF", colour = colorstyle_default, size = 10 ),
+    panel.background = element_rect(fill = "#FFFFFF"),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_blank(),
+  )
+
+```
+
+
+# 上市薪資
+
+## 113年上市公司平均薪資前十名
+
+```{r fig.height=4, fig.width=4}
+df_1 <- read_csv("113上市薪資.csv", locale = locale(encoding = "CP950"))
+
+# 處理欄位名稱與轉換薪資欄位
+df_clean_1 <- df_1 %>%
+  rename(公司名稱 = `公司名稱`,
+         平均薪資113 = `公司年度資訊-平均員工薪資費用-113年度(仟元/人)`) %>%
+  mutate(平均薪資113 = as.numeric(平均薪資113)) %>%
+  arrange(desc(平均薪資113)) %>%
+  slice_head(n = 10)
+
+# 繪圖
+df_clean_1 %>%
+  mutate(
+    平均薪資113 = 平均薪資113 / 10,  # 轉換為萬元
+    公司名稱 = fct_reorder(公司名稱, 平均薪資113)
+  ) %>%
+  ggplot(aes(x = 公司名稱, y = 平均薪資113)) +
+  ggchicklet::geom_chicklet(radius = grid::unit(10, "pt"), fill = colorstyle_default) +  # 使用圓角長條
+  geom_text(aes(label = round(平均薪資113, 0), family = "jf-jinxuan-3.0 medium"),
+            hjust = -0.1, color = "black", size = 4) +
+  coord_flip() +
+  scale_y_continuous(
+    limits = c(0, 600),  # 設定範圍為 0 到 500
+    expand = expansion(mult = c(0, 0.02))  # 減少擴展空間
+  ) +
+  labs(
+    title = "113年上市公司平均薪資前十名",
+    subtitle = "",
+    x = NULL,
+    y = "平均薪資（萬元/人）",
+    caption = "資料來源：臺灣證券交易所"
+  ) + th +
+  theme(
+    axis.text.y = element_text(
+      size = 18,
+      margin = margin(r = 10, unit = "pt")  # 增加右邊距
+    ),
+    axis.text.x = element_blank(),
+  )
+```
+
+
+## 113年上市公司平均薪資後十名
+
+```{r fig.width=4, fig.height=4}
+df_clean_2 <- df_1 %>%
+  rename(公司名稱 = `公司名稱`,
+         平均薪資113 = `公司年度資訊-平均員工薪資費用-113年度(仟元/人)`) %>%
+  mutate(平均薪資113 = as.numeric(平均薪資113)) %>%
+  arrange(平均薪資113) %>%  # 改為升序排列（從低到高）
+  slice_head(n = 10)  # 取前10筆（最低的10筆）
+
+# 繪圖
+df_clean_2 %>%
+  mutate(
+    平均薪資113 = 平均薪資113 / 10,  # 轉換為萬元
+    公司名稱 = fct_reorder(公司名稱, -平均薪資113)  # 保持原樣，會自動由低到高排序
+  ) %>%
+  ggplot(aes(x = 公司名稱, y = 平均薪資113)) +
+  ggchicklet::geom_chicklet(radius = grid::unit(10, "pt"), fill = colorstyle_default) +
+  geom_text(aes(label = round(平均薪資113, 0), family = "jf-jinxuan-3.0 medium"),
+            hjust = -0.1, color = "black", size = 4) +
+  coord_flip() +scale_y_continuous(
+    limits = c(0, 600),  # 設定範圍為 0 到 500
+    expand = expansion(mult = c(0, 0.02))  # 減少擴展空間
+  ) +
+  labs(
+    title = "113年上市公司平均薪資後十名",  # 改標題
+    subtitle = "",
+    x = NULL,
+    y = "平均薪資（萬元/人）",
+    caption = "資料來源：臺灣證券交易所"
+  ) + th +
+  theme(
+    axis.text.y = element_text(
+      size = 18,
+      margin = margin(r = 10, unit = "pt")
+    ),
+    axis.text.x = element_blank(),
+  )
+```
+
+## 113年上市公司各產業平均薪資前十名
+
+
+```{r fig.width=4, fig.height=4}
+# 處理欄位名稱與轉換薪資欄位，並按產業分組計算
+df_industry_1 <- df_1 %>% #view()
+  rename(公司名稱 = `公司名稱`,
+         產業別 = `產業類別`,
+         平均薪資113 = `公司年度資訊-平均員工薪資費用-113年度(仟元/人)`) %>%
+  mutate(平均薪資113 = as.numeric(平均薪資113)) %>%
+  filter(!is.na(平均薪資113)) %>%  # 移除缺失值
+  group_by(產業別) %>%
+  summarise(
+    產業平均薪資 = mean(平均薪資113, na.rm = TRUE),
+    公司數量 = n()
+  ) %>%
+  arrange(desc(產業平均薪資)) 
+
+# 繪圖
+df_industry %>%
+  mutate(
+    產業平均薪資 = 產業平均薪資 / 10,  # 轉換為萬元
+    產業別 = fct_reorder(產業別, 產業平均薪資)
+  ) %>%
+  ggplot(aes(x = 產業別, y = 產業平均薪資)) +
+  ggchicklet::geom_chicklet(radius = grid::unit(10, "pt"), fill = colorstyle_default) +
+  geom_text(aes(label = round(產業平均薪資, 0), family = "jf-jinxuan-3.0 medium"),
+            hjust = -0.1, color = "black", size = 4) +
+  coord_flip() +
+  scale_y_continuous(
+    limits = c(0, 200),  # 設定範圍為 0 到 500
+    expand = expansion(mult = c(0, 0.02))  # 減少擴展空間
+  ) +
+  labs(
+    title = "113年上市公司各產業平均薪資前十名",
+    subtitle = "",
+    x = NULL,
+    y = "平均薪資（萬元/人）",
+    caption = "資料來源：臺灣證券交易所"
+  ) + th +
+  theme(
+    axis.text.y = element_text(
+      size = 18,
+      margin = margin(r = 10, unit = "pt")
+    ),
+    axis.text.x = element_blank(),
+  )
+```
+
+
+# 上櫃薪資
+
+## 113年上櫃公司平均薪資前十名
+
+```{r fig.height=4, fig.width=4}
+df_2 <- read_csv("113上櫃薪資.csv", locale = locale(encoding = "CP950"))
+
+# 處理欄位名稱與轉換薪資欄位
+df_clean_3 <- df_2 %>%
+  rename(公司名稱 = `公司名稱`,
+         平均薪資113 = `公司年度資訊-平均員工薪資費用-113年度(仟元/人)`) %>%
+  mutate(平均薪資113 = as.numeric(平均薪資113)) %>%
+  arrange(desc(平均薪資113)) %>%
+  slice_head(n = 10)
+
+# 繪圖
+df_clean_3 %>%
+  mutate(
+    平均薪資113 = 平均薪資113 / 10,  # 轉換為萬元
+    公司名稱 = fct_reorder(公司名稱, 平均薪資113)
+  ) %>%
+  ggplot(aes(x = 公司名稱, y = 平均薪資113)) +
+  ggchicklet::geom_chicklet(radius = grid::unit(10, "pt"), fill = colorstyle_default) +  # 使用圓角長條
+  geom_text(aes(label = round(平均薪資113, 0), family = "jf-jinxuan-3.0 medium"),
+            hjust = -0.1, color = "black", size = 4) +
+  coord_flip() +
+  scale_y_continuous(
+    limits = c(0, 600),  # 設定範圍為 0 到 500
+    expand = expansion(mult = c(0, 0.02))  # 減少擴展空間
+  ) +
+  labs(
+    title = "113年上櫃公司平均薪資前十名",
+    subtitle = "",
+    x = NULL,
+    y = "平均薪資（萬元/人）",
+    caption = "資料來源：臺灣證券交易所"
+  ) + th +
+  theme(
+    axis.text.y = element_text(
+      size = 18,
+      margin = margin(r = 10, unit = "pt")  # 增加右邊距
+    ),
+    axis.text.x = element_blank(),
+  )
+```
+
+
+## 113年上櫃公司平均薪資後十名
+
+```{r fig.width=4, fig.height=4}
+df_clean_4 <- df_2 %>%
+  rename(公司名稱 = `公司名稱`,
+         平均薪資113 = `公司年度資訊-平均員工薪資費用-113年度(仟元/人)`) %>%
+  mutate(平均薪資113 = as.numeric(平均薪資113)) %>%
+  arrange(平均薪資113) %>%  # 改為升序排列（從低到高）
+  slice_head(n = 10)  # 取前10筆（最低的10筆）
+
+# 繪圖
+df_clean_4 %>%
+  mutate(
+    平均薪資113 = 平均薪資113 / 10,  # 轉換為萬元
+    公司名稱 = fct_reorder(公司名稱, -平均薪資113)  # 保持原樣，會自動由低到高排序
+  ) %>%
+  ggplot(aes(x = 公司名稱, y = 平均薪資113)) +
+  ggchicklet::geom_chicklet(radius = grid::unit(10, "pt"), fill = colorstyle_default) +
+  geom_text(aes(label = round(平均薪資113, 0), family = "jf-jinxuan-3.0 medium"),
+            hjust = -0.1, color = "black", size = 4) +
+  coord_flip() +scale_y_continuous(
+    limits = c(0, 600),  # 設定範圍為 0 到 500
+    expand = expansion(mult = c(0, 0.02))  # 減少擴展空間
+  ) +
+  labs(
+    title = "113年上櫃公司平均薪資後十名",  # 改標題
+    subtitle = "",
+    x = NULL,
+    y = "平均薪資（萬元/人）",
+    caption = "資料來源：臺灣證券交易所"
+  ) + th +
+  theme(
+    axis.text.y = element_text(
+      size = 18,
+      margin = margin(r = 10, unit = "pt")
+    ),
+    axis.text.x = element_blank(),
+  )
+```
+
+
+
+## 113年上櫃公司各產業平均薪資前十名
+
+
+```{r fig.width=4, fig.height=4}
+# 處理欄位名稱與轉換薪資欄位，並按產業分組計算
+df_industry_2 <- df_2 %>% #view()
+  rename(公司名稱 = `公司名稱`,
+         產業別 = `產業類別`,
+         平均薪資113 = `公司年度資訊-平均員工薪資費用-113年度(仟元/人)`) %>%
+  mutate(平均薪資113 = as.numeric(平均薪資113)) %>%
+  filter(!is.na(平均薪資113)) %>%  # 移除缺失值
+  group_by(產業別) %>%
+  summarise(
+    產業平均薪資 = mean(平均薪資113, na.rm = TRUE),
+    公司數量 = n()
+  ) %>%
+  arrange(desc(產業平均薪資)) 
+
+# 繪圖
+df_industry_2 %>%
+  mutate(
+    產業平均薪資 = 產業平均薪資 / 10,  # 轉換為萬元
+    產業別 = fct_reorder(產業別, 產業平均薪資)
+  ) %>%
+  ggplot(aes(x = 產業別, y = 產業平均薪資)) +
+  ggchicklet::geom_chicklet(radius = grid::unit(4, "pt"), fill = colorstyle_default) +
+  geom_text(aes(label = round(產業平均薪資, 0), family = "jf-jinxuan-3.0 medium"),
+            hjust = -0.1, color = "black", size = 4) +
+  coord_flip() +
+  scale_y_continuous(
+    limits = c(0, 200),  # 設定範圍為 0 到 500
+    expand = expansion(mult = c(0, 0.02))  # 減少擴展空間
+  ) +
+  labs(
+    title = "113年上櫃公司各產業平均薪資前十名",
+    subtitle = "",
+    x = NULL,
+    y = "平均薪資（萬元/人）",
+    caption = "資料來源：臺灣證券交易所"
+  ) + th +
+  theme(
+    axis.text.y = element_text(
+      size = 13,
+      margin = margin(r = 10, unit = "pt")
+    ),
+    axis.text.x = element_blank(),
+  )
+```
