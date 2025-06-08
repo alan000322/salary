@@ -1039,7 +1039,7 @@
                 <a href="https://www.tpex.org.tw/web/index.php" target="_blank">證券櫃檯買賣中心</a>
             </p>
             <p style="margin-top: 0.5rem; font-size: 0.75rem;">
-                本資料僅供參考，實際薪資資訊請以各公司公告為準
+                本資料僅供參考、AI 分析，實際薪資資訊請以各公司公告為準
             </p>
         </div>
     </footer>
@@ -1574,8 +1574,8 @@
             // 更新公司圖表
             updateCompanyCharts(filteredData, topN, sortDirection);
             
-            // 更新產業圖表
-            updateIndustryCharts(topN, sortDirection);
+            // 更新產業圖表，傳入篩選後的資料
+            updateIndustryCharts(filteredData, topN, sortDirection);
         }
 
         function updateCompanyCharts(data, topN, sortDirection) {
@@ -1668,11 +1668,11 @@
             });
         }
 
-        function updateIndustryCharts(topN, sortDirection) {
+        function updateIndustryCharts(filteredData, topN, sortDirection) {
             const order = sortDirection === 'desc' ? ['desc'] : ['asc'];
             
-            // 計算產業平均
-            const industryGroups = _.groupBy(allData, 'industry');
+            // 計算產業平均，使用篩選後的資料
+            const industryGroups = _.groupBy(filteredData, 'industry');
             const industryStats = Object.entries(industryGroups).map(([industry, companies]) => {
                 const avgSalary113 = _.meanBy(companies, 'salary113');
                 const avgSalary112 = _.meanBy(companies, 'salary112');
