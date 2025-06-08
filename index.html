@@ -23,6 +23,8 @@
         :root {
             --primary-50: #f0f9ff;
             --primary-100: #e0f2fe;
+            --primary-300: #7dd3fc;
+            --primary-400: #38bdf8;
             --primary-500: #0ea5e9;
             --primary-600: #0284c7;
             --primary-700: #0369a1;
@@ -44,8 +46,6 @@
             --green-600: #16a34a;
             --red-500: #ef4444;
             --red-600: #dc2626;
-            
-            --primary-300: #7dd3fc;
             
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
@@ -224,20 +224,107 @@
             transform: scale(1.02);
         }
 
-        .filters {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 2rem;
+        /* 次級標籤樣式 */
+        .sub-tabs {
+            display: flex;
+            gap: 0.5rem;
             margin-bottom: 2rem;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--slate-100);
+            background: var(--slate-50);
+            padding: 0.25rem;
+            border-radius: 8px;
+            border: 1px solid var(--slate-200);
         }
 
+        .sub-tab {
+            flex: 1;
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--slate-600);
+            transition: all 0.2s ease;
+        }
+
+        .sub-tab:hover {
+            color: var(--slate-800);
+            background: var(--slate-100);
+        }
+
+        .sub-tab.active {
+            background: #ffffff;
+            color: var(--primary-600);
+            box-shadow: var(--shadow-sm);
+            font-weight: 600;
+        }
+
+        /* 自訂選單樣式 */
+        .custom-select {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .custom-select select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            width: 100%;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            border: 2px solid var(--slate-200);
+            border-radius: 10px;
+            font-size: 0.875rem;
+            color: var(--slate-700);
+            background: var(--slate-50);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .custom-select select:focus {
+            outline: none;
+            border-color: var(--primary-300);
+            box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .custom-select select:hover {
+            border-color: var(--slate-300);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .custom-select::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 1rem;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid var(--slate-500);
+            pointer-events: none;
+            transition: all 0.2s ease;
+        }
+
+        .custom-select:hover::after {
+            border-top-color: var(--slate-600);
+        }
+
+        .custom-select select:focus + .custom-select::after,
+        .custom-select select:focus ~ .custom-select::after {
+            border-top-color: var(--primary-400);
+        }
+
+        /* 改進篩選器布局 */
         .filter-group {
-            display: flex;
-            gap: 2rem;
+            display: grid;
+            grid-template-columns: auto minmax(140px, 1fr) auto minmax(140px, 1fr) auto minmax(120px, 1fr) auto minmax(120px, 1fr);
+            gap: 1rem;
             align-items: center;
-            flex-wrap: wrap;
         }
 
         .filter-label {
@@ -247,26 +334,39 @@
             white-space: nowrap;
         }
 
-        select, input[type="text"] {
-            padding: 0.75rem 1rem;
-            border: 2px solid var(--slate-200);
-            border-radius: 8px;
-            font-size: 0.875rem;
-            color: var(--slate-700);
-            background: #ffffff;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-weight: 500;
+        /* 響應式設計 */
+        @media (max-width: 1024px) {
+            .filter-group {
+                grid-template-columns: auto 1fr auto 1fr;
+                gap: 1rem 1.5rem;
+            }
         }
 
-        select:focus, input[type="text"]:focus {
-            outline: none;
-            border-color: var(--primary-500);
-            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-        }
-
-        select:hover, input[type="text"]:hover {
-            border-color: var(--slate-300);
+        @media (max-width: 768px) {
+            .filter-group {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                text-align: left;
+            }
+            
+            .filter-label {
+                margin-bottom: 0.5rem;
+                font-size: 0.9rem;
+            }
+            
+            .custom-select select {
+                padding: 1rem 3rem 1rem 1.25rem;
+                font-size: 1rem;
+                border-radius: 12px;
+                min-height: 48px;
+            }
+            
+            .custom-select::after {
+                right: 1.25rem;
+                border-left: 6px solid transparent;
+                border-right: 6px solid transparent;
+                border-top: 7px solid var(--slate-500);
+            }
         }
 
         button {
@@ -416,42 +516,6 @@
             font-weight: 700;
         }
 
-        /* 響應式設計 */
-        @media (max-width: 768px) {
-            .container {
-                padding: 0 1rem;
-            }
-            
-            h1 {
-                font-size: 1.5rem;
-            }
-            
-            .filter-group {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 1rem;
-            }
-            
-            .tabs {
-                flex-direction: column;
-                gap: 0.25rem;
-            }
-            
-            .chart-wrapper {
-                height: 300px;
-            }
-            
-            .search-input-group {
-                flex-direction: column;
-                align-items: stretch;
-                max-width: none;
-            }
-            
-            .search-input-group input {
-                min-width: auto;
-            }
-        }
-
         /* 載入動畫 */
         .loading::after {
             content: '';
@@ -564,18 +628,6 @@
             box-shadow: 0 0 15px rgba(14, 165, 233, 0.4);
         }
 
-        /* 響應式設計 */
-        @media (max-width: 768px) {
-            .ranking-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 1rem;
-            }
-            
-            .ranking-number {
-                font-size: 2rem;
-            }
-        }
-
         /* 頁尾樣式 */
         .footer {
             background: var(--slate-50);
@@ -674,6 +726,154 @@
                 padding: 0.4rem 0.8rem;
             }
         }
+
+        .filters {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--slate-100);
+        }
+
+        /* 輸入框樣式 */
+        input[type="text"] {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--slate-200);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--slate-700);
+            background: #ffffff;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        input[type="text"]:hover {
+            border-color: var(--slate-300);
+        }
+
+        /* 響應式設計補充 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .tabs {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+            
+            .sub-tabs {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+            
+            .chart-wrapper {
+                height: 300px;
+            }
+            
+            .search-input-group {
+                flex-direction: column;
+                align-items: stretch;
+                max-width: none;
+            }
+            
+            .search-input-group input {
+                min-width: auto;
+                padding: 1rem 1.25rem;
+                font-size: 1rem;
+                min-height: 48px;
+            }
+            
+            .ranking-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+            
+            .ranking-number {
+                font-size: 2rem;
+            }
+        }
+
+        /* 手機版篩選器收合功能 */
+        .filter-toggle {
+            display: none;
+            width: 100%;
+            padding: 1rem;
+            background: var(--slate-200);
+            color: var(--slate-700);
+            border: 1px solid var(--slate-300);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .filter-toggle:hover {
+            background: var(--slate-300);
+            border-color: var(--slate-400);
+        }
+
+        .filter-toggle::after {
+            content: '';
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid white;
+            transition: transform 0.3s ease;
+        }
+
+        .filter-toggle.expanded::after {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .filter-content {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .filter-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin-bottom: 0;
+        }
+
+        .filter-content.expanded {
+            max-height: 1000px;
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .filter-toggle {
+                display: block;
+            }
+            
+            .filters {
+                padding: 1.5rem;
+            }
+            
+            .filter-content.collapsed {
+                padding: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -688,81 +888,102 @@
         <div class="loading" id="loading">載入中...</div>
         
         <div id="dashboard" style="display: none;">
-            <!-- 公司類型選擇 -->
-            <div class="filters">
-                <div class="filter-group">
-                    <label class="filter-label">公司類型：</label>
-                    <select id="companyTypeFilter">
-                        <option value="all">全部公司</option>
-                        <option value="listed">上市公司</option>
-                        <option value="otc">上櫃公司</option>
-                    </select>
-                    <label class="filter-label" style="margin-left: 2rem;">產業類別：</label>
-                    <select id="industryFilter">
-                        <option value="all">所有產業</option>
-                    </select>
-                    <label class="filter-label" style="margin-left: 2rem;">排序數量：</label>
-                    <select id="topNFilter">
-                        <option value="10">前 10 名</option>
-                        <option value="20">前 20 名</option>
-                        <option value="30">前 30 名</option>
-                        <option value="50">前 50 名</option>
-                        <option value="100">前 100 名</option>
-                        <option value="all">全部公司</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 排序方向選擇 -->
-            <div class="filters">
-                <div class="filter-group">
-                    <label class="filter-label">排序方向：</label>
-                    <select id="sortDirectionFilter">
-                        <option value="desc">由高至低</option>
-                        <option value="asc">由低至高</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 標籤切換 -->
+            <!-- 主要標籤切換 -->
             <div class="tabs">
-                <button class="tab active" data-tab="company">公司排行</button>
-                <button class="tab" data-tab="industry">產業分析</button>
-                <button class="tab" data-tab="search">公司查詢</button>
+                <button class="tab active" data-tab="analysis">📊 薪資分析</button>
+                <button class="tab" data-tab="search">🔍 公司查詢</button>
             </div>
 
-            <!-- 公司排行圖表 -->
-            <div id="companyCharts" class="tab-content">
-                <div class="chart-container">
-                    <h2 class="chart-title">公司薪資排行榜 (113年度)</h2>
-                    <div class="chart-wrapper">
-                        <canvas id="topSalaryChart"></canvas>
+            <!-- 薪資分析頁面 -->
+            <div id="analysisCharts" class="tab-content">
+                <!-- 篩選器組 -->
+                <div class="filters">
+                    <button class="filter-toggle" id="filterToggle">
+                        🔧 篩選設定
+                    </button>
+                    <div class="filter-content collapsed" id="filterContent">
+                        <div class="filter-group">
+                            <label class="filter-label">公司類型：</label>
+                            <div class="custom-select">
+                                <select id="companyTypeFilter">
+                                    <option value="all">全部公司</option>
+                                    <option value="listed">上市公司</option>
+                                    <option value="otc">上櫃公司</option>
+                                </select>
+                            </div>
+                            
+                            <label class="filter-label">產業類別：</label>
+                            <div class="custom-select">
+                                <select id="industryFilter">
+                                    <option value="all">所有產業</option>
+                                </select>
+                            </div>
+                            
+                            <label class="filter-label">排序數量：</label>
+                            <div class="custom-select">
+                                <select id="topNFilter">
+                                    <option value="10">前 10 名</option>
+                                    <option value="20">前 20 名</option>
+                                    <option value="30">前 30 名</option>
+                                    <option value="50">前 50 名</option>
+                                    <option value="100">前 100 名</option>
+                                    <option value="all">全部公司</option>
+                                </select>
+                            </div>
+                            
+                            <label class="filter-label">排序方向：</label>
+                            <div class="custom-select">
+                                <select id="sortDirectionFilter">
+                                    <option value="desc">由高至低</option>
+                                    <option value="asc">由低至高</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="chart-container">
-                    <h2 class="chart-title">公司薪資成長率排行榜</h2>
-                    <div class="chart-wrapper">
-                        <canvas id="topGrowthChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 產業分析圖表 -->
-            <div id="industryCharts" class="tab-content" style="display: none;">
-                <div class="chart-container">
-                    <h2 class="chart-title">產業平均薪資排行 (113年度)</h2>
-                    <div class="chart-wrapper">
-                        <canvas id="industryAvgChart"></canvas>
-                    </div>
+                <!-- 次級標籤切換（分析類型） -->
+                <div class="sub-tabs">
+                    <button class="sub-tab active" data-subtab="company">公司排行</button>
+                    <button class="sub-tab" data-subtab="industry">產業分析</button>
                 </div>
 
-                <div class="chart-container">
-                    <h2 class="chart-title">產業薪資成長率排行</h2>
-                    <div class="chart-wrapper">
-                        <canvas id="industryGrowthChart"></canvas>
+                <!-- 公司排行圖表 -->
+                <div id="companyCharts" class="sub-tab-content">
+                    <div class="chart-container">
+                        <h2 class="chart-title">公司薪資排行榜 (113年度)</h2>
+                        <div class="chart-wrapper">
+                            <canvas id="topSalaryChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <h2 class="chart-title">公司薪資成長率排行榜</h2>
+                        <div class="chart-wrapper">
+                            <canvas id="topGrowthChart"></canvas>
+                        </div>
                     </div>
                 </div>
+
+                <!-- 產業分析圖表 -->
+                <div id="industryCharts" class="sub-tab-content" style="display: none;">
+                    <div class="chart-container">
+                        <h2 class="chart-title">產業平均薪資排行 (113年度)</h2>
+                        <div class="chart-wrapper">
+                            <canvas id="industryAvgChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <h2 class="chart-title">產業薪資成長率排行</h2>
+                        <div class="chart-wrapper">
+                            <canvas id="industryGrowthChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 統計卡片 -->
+                <div class="dashboard" id="statsCards"></div>
             </div>
 
             <!-- 公司查詢頁面 -->
@@ -787,13 +1008,10 @@
                 </div>
                 
                 <div id="searchResults" class="chart-container" style="display: none;">
-                    <h2 class="chart-title">📊 公司詳細資訊</h2>
+                    <h2 class="chart-title" id="companyDetailsTitle">📊 公司詳細資訊</h2>
                     <div id="companyDetails"></div>
                 </div>
             </div>
-
-            <!-- 統計卡片 -->
-            <div class="dashboard" id="statsCards"></div>
         </div>
     </main>
 
@@ -903,9 +1121,20 @@
                     this.classList.add('active');
                     
                     const tabName = this.dataset.tab;
-                    document.getElementById('companyCharts').style.display = tabName === 'company' ? 'block' : 'none';
-                    document.getElementById('industryCharts').style.display = tabName === 'industry' ? 'block' : 'none';
+                    document.getElementById('analysisCharts').style.display = tabName === 'analysis' ? 'block' : 'none';
                     document.getElementById('searchCharts').style.display = tabName === 'search' ? 'block' : 'none';
+                });
+            });
+
+            // 次級標籤切換
+            document.querySelectorAll('.sub-tab').forEach(subTab => {
+                subTab.addEventListener('click', function() {
+                    document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const subTabName = this.dataset.subtab;
+                    document.getElementById('companyCharts').style.display = subTabName === 'company' ? 'block' : 'none';
+                    document.getElementById('industryCharts').style.display = subTabName === 'industry' ? 'block' : 'none';
                 });
             });
 
@@ -917,6 +1146,9 @@
 
             // 初始化快速搜尋按鈕
             initializeQuickSearchButtons();
+
+            // 初始化篩選器收合功能
+            initializeFilterToggle();
         }
 
         function initializeQuickSearchButtons() {
@@ -946,6 +1178,50 @@
                 });
                 quickSearchContainer.appendChild(button);
             });
+        }
+
+        function initializeFilterToggle() {
+            const filterToggle = document.getElementById('filterToggle');
+            const filterContent = document.getElementById('filterContent');
+            
+            // 檢查是否為手機版
+            function isMobile() {
+                return window.innerWidth <= 768;
+            }
+            
+            // 設定初始狀態
+            function setInitialState() {
+                if (isMobile()) {
+                    filterContent.classList.add('collapsed');
+                    filterContent.classList.remove('expanded');
+                    filterToggle.classList.remove('expanded');
+                } else {
+                    filterContent.classList.remove('collapsed');
+                    filterContent.classList.add('expanded');
+                    filterToggle.classList.remove('expanded');
+                }
+            }
+            
+            // 切換收合狀態
+            filterToggle.addEventListener('click', function() {
+                const isCollapsed = filterContent.classList.contains('collapsed');
+                
+                if (isCollapsed) {
+                    filterContent.classList.remove('collapsed');
+                    filterContent.classList.add('expanded');
+                    filterToggle.classList.add('expanded');
+                } else {
+                    filterContent.classList.add('collapsed');
+                    filterContent.classList.remove('expanded');
+                    filterToggle.classList.remove('expanded');
+                }
+            });
+            
+            // 監聽視窗大小變化
+            window.addEventListener('resize', setInitialState);
+            
+            // 設定初始狀態
+            setInitialState();
         }
 
         function searchCompany() {
@@ -1106,6 +1382,9 @@
 
             // 創建同產業對比圖表
             createIndustryComparisonChart(company, industryCompanies);
+
+            // 更新標題顯示公司名稱
+            document.getElementById('companyDetailsTitle').textContent = `📊 ${company.company} 詳細資訊`;
 
             document.getElementById('searchResults').style.display = 'block';
             document.getElementById('searchResults').scrollIntoView({ behavior: 'smooth' });
