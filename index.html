@@ -598,9 +598,16 @@
 
         .ranking-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 1.5rem;
             margin: 2rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .ranking-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
         }
 
         .percentile-badge {
@@ -796,7 +803,7 @@
             }
             
             .ranking-grid {
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr;
                 gap: 1rem;
             }
             
@@ -1244,9 +1251,20 @@
             const growthRank = allData.filter(d => d.growthRate > company.growthRate).length + 1;
             const typeRank = allData.filter(d => d.type === company.type && d.salary113 > company.salary113).length + 1;
 
+            // 改進百分位計算
+            const calculatePercentile = (rank, total) => {
+                // 確保百分位在1-100之間
+                const percentile = Math.max(1, Math.min(100, Math.round((1 - (rank - 1) / total) * 100)));
+                return percentile;
+            };
+
             // 計算百分位
-            const salaryPercentile = Math.round((1 - (salaryRank - 1) / totalCompanies) * 100);
-            const growthPercentile = Math.round((1 - (growthRank - 1) / totalCompanies) * 100);
+            const salaryPercentile = calculatePercentile(salaryRank, totalCompanies);
+            const growthPercentile = calculatePercentile(growthRank, totalCompanies);
+
+            // 計算實際超越的公司數量
+            const companiesSurpassedSalary = totalCompanies - salaryRank;
+            const companiesSurpassedGrowth = totalCompanies - growthRank;
 
             // 取得同產業公司資料
             const industryCompanies = allData.filter(d => d.industry === company.industry);
@@ -1256,11 +1274,11 @@
             details.innerHTML = `
                 <!-- 突出顯示的排名資訊 -->
                 <div class="ranking-grid">
-                    <div class="ranking-card">
+                    <div class="ranking-card" style="grid-column: span 2;">
                         <div class="ranking-number">#${salaryRank}</div>
                         <div class="ranking-label">整體薪資排名</div>
                         <div class="ranking-label" style="font-size: 0.75rem; margin-top: 0.25rem;">
-                            共 ${totalCompanies} 家公司
+                            在 ${totalCompanies} 家公司中
                         </div>
                     </div>
                     <div class="ranking-card">
@@ -1281,9 +1299,26 @@
                         <div class="ranking-number">前${salaryPercentile}%</div>
                         <div class="ranking-label">薪資百分位</div>
                         <div class="ranking-label" style="font-size: 0.75rem; margin-top: 0.25rem;">
-                            超越 ${Math.round((1 - salaryPercentile/100) * totalCompanies)} 家公司
+                            在 ${totalCompanies} 家公司中
                         </div>
                     </div>
+                    <div class="ranking-card">
+                        <div class="ranking-number">前${growthPercentile}%</div>
+                        <div class="ranking-label">成長率百分位</div>
+                        <div class="ranking-label" style="font-size: 0.75rem; margin-top: 0.25rem;">
+                            在 ${totalCompanies} 家公司中
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 詳細排名部分也相應修改 -->
+                <div class="detail-item">
+                    <span class="detail-label">整體薪資排名</span>
+                    <span class="detail-value">第 ${salaryRank} 名 / ${totalCompanies} 家 <span class="percentile-badge">前${salaryPercentile}%</span></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">成長率排名</span>
+                    <span class="detail-value">第 ${growthRank} 名 <span class="percentile-badge">前${growthPercentile}%</span></span>
                 </div>
 
                 <!-- 同產業公司對比圖表 -->
@@ -1333,26 +1368,6 @@
                             <span class="detail-value ${company.growthRate >= 0 ? 'growth-positive' : 'growth-negative'}">
                                 ${company.growthRate >= 0 ? '+' : ''}${(company.salary113 - company.salary112).toFixed(1)} 萬元
                             </span>
-                        </div>
-                    </div>
-                    
-                    <div class="detail-section">
-                        <h3>🏆 詳細排名</h3>
-                        <div class="detail-item">
-                            <span class="detail-label">整體薪資排名</span>
-                            <span class="detail-value">第 ${salaryRank} 名 / ${totalCompanies} 家 <span class="percentile-badge">前${salaryPercentile}%</span></span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">${company.type === 'listed' ? '上市' : '上櫃'}公司排名</span>
-                            <span class="detail-value">第 ${typeRank} 名 / ${typeCompanies} 家</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">產業內排名</span>
-                            <span class="detail-value">第 ${industryRank} 名 / ${industryCompanies.length} 家</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">成長率排名</span>
-                            <span class="detail-value">第 ${growthRank} 名 <span class="percentile-badge">前${growthPercentile}%</span></span>
                         </div>
                     </div>
                     
