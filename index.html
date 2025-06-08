@@ -325,6 +325,8 @@
             grid-template-columns: auto minmax(140px, 1fr) auto minmax(140px, 1fr) auto minmax(120px, 1fr) auto minmax(120px, 1fr);
             gap: 1rem;
             align-items: center;
+            background: transparent;
+            padding: 0;
         }
 
         .filter-label {
@@ -332,6 +334,7 @@
             font-weight: 600;
             color: var(--slate-700);
             white-space: nowrap;
+            margin-right: 0.5rem;
         }
 
         /* 響應式設計 */
@@ -735,12 +738,63 @@
         }
 
         .filters {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 2rem;
+            background: transparent;
+            border-radius: 0;
+            padding: 0;
             margin-bottom: 2rem;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--slate-100);
+            box-shadow: none;
+            border: none;
+        }
+
+        .filter-toggle {
+            display: none;
+            width: 100%;
+            padding: 0.75rem;  /* 縮小高度 */
+            background: var(--slate-200);
+            color: var(--slate-700);
+            border: 1px solid var(--slate-300);
+            border-radius: 8px;  /* 稍微縮小圓角 */
+            font-size: 0.875rem;  /* 縮小字體 */
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .filter-toggle::after {
+            content: '';
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;  /* 縮小箭頭 */
+            border-right: 4px solid transparent;
+            border-top: 5px solid var(--slate-600);
+            transition: transform 0.3s ease;
+        }
+
+        .filter-toggle.expanded::after {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .filter-content {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .filter-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin-bottom: 0;
+            padding: 0;
+        }
+
+        .filter-content.expanded {
+            max-height: 1000px;
+            opacity: 1;
         }
 
         /* 輸入框樣式 */
@@ -810,75 +864,29 @@
             .ranking-number {
                 font-size: 2rem;
             }
-        }
-
-        /* 手機版篩選器收合功能 */
-        .filter-toggle {
-            display: none;
-            width: 100%;
-            padding: 1rem;
-            background: var(--slate-200);
-            color: var(--slate-700);
-            border: 1px solid var(--slate-300);
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 1rem;
-            position: relative;
-        }
-
-        .filter-toggle:hover {
-            background: var(--slate-300);
-            border-color: var(--slate-400);
-        }
-
-        .filter-toggle::after {
-            content: '';
-            position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 0;
-            height: 0;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-top: 8px solid white;
-            transition: transform 0.3s ease;
-        }
-
-        .filter-toggle.expanded::after {
-            transform: translateY(-50%) rotate(180deg);
-        }
-
-        .filter-content {
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-
-        .filter-content.collapsed {
-            max-height: 0;
-            opacity: 0;
-            margin-bottom: 0;
-        }
-
-        .filter-content.expanded {
-            max-height: 1000px;
-            opacity: 1;
-        }
-
-        @media (max-width: 768px) {
+            
             .filter-toggle {
                 display: block;
+                padding: 0.625rem;
+                font-size: 0.8rem;
             }
             
-            .filters {
-                padding: 1.5rem;
+            .filter-toggle::after {
+                right: 0.5rem;
+                border-left: 3px solid transparent;
+                border-right: 3px solid transparent;
+                border-top: 4px solid var(--slate-600);
             }
             
-            .filter-content.collapsed {
-                padding: 0;
+            .filter-group {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                text-align: left;
+            }
+
+            .filter-label {
+                margin-bottom: 0.5rem;
+                font-size: 0.9rem;
             }
         }
     </style>
@@ -904,12 +912,12 @@
             <!-- 薪資分析頁面 -->
             <div id="analysisCharts" class="tab-content">
                 <!-- 篩選器組 -->
-                <div class="filters">
+            <div class="filters">
                     <button class="filter-toggle" id="filterToggle">
                         🔧 篩選設定
                     </button>
                     <div class="filter-content collapsed" id="filterContent">
-                        <div class="filter-group">
+                <div class="filter-group">
                             <label class="filter-label">公司類型：</label>
                             <div class="custom-select">
                                 <select id="companyTypeFilter">
@@ -919,23 +927,23 @@
                                 </select>
                             </div>
                             
-                            <label class="filter-label">產業類別：</label>
+                    <label class="filter-label">產業類別：</label>
                             <div class="custom-select">
-                                <select id="industryFilter">
-                                    <option value="all">所有產業</option>
-                                </select>
+                    <select id="industryFilter">
+                        <option value="all">所有產業</option>
+                    </select>
                             </div>
                             
                             <label class="filter-label">排序數量：</label>
                             <div class="custom-select">
-                                <select id="topNFilter">
-                                    <option value="10">前 10 名</option>
-                                    <option value="20">前 20 名</option>
-                                    <option value="30">前 30 名</option>
+                    <select id="topNFilter">
+                        <option value="10">前 10 名</option>
+                        <option value="20">前 20 名</option>
+                        <option value="30">前 30 名</option>
                                     <option value="50">前 50 名</option>
                                     <option value="100">前 100 名</option>
                                     <option value="all">全部公司</option>
-                                </select>
+                    </select>
                             </div>
                             
                             <label class="filter-label">排序方向：</label>
@@ -946,46 +954,46 @@
                                 </select>
                             </div>
                         </div>
-                    </div>
                 </div>
+            </div>
 
                 <!-- 次級標籤切換（分析類型） -->
                 <div class="sub-tabs">
                     <button class="sub-tab active" data-subtab="company">公司排行</button>
                     <button class="sub-tab" data-subtab="industry">產業分析</button>
-                </div>
+            </div>
 
-                <!-- 公司排行圖表 -->
+            <!-- 公司排行圖表 -->
                 <div id="companyCharts" class="sub-tab-content">
-                    <div class="chart-container">
-                        <h2 class="chart-title">公司薪資排行榜 (113年度)</h2>
-                        <div class="chart-wrapper">
-                            <canvas id="topSalaryChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="chart-container">
-                        <h2 class="chart-title">公司薪資成長率排行榜</h2>
-                        <div class="chart-wrapper">
-                            <canvas id="topGrowthChart"></canvas>
-                        </div>
+                <div class="chart-container">
+                    <h2 class="chart-title">公司薪資排行榜 (113年度)</h2>
+                    <div class="chart-wrapper">
+                        <canvas id="topSalaryChart"></canvas>
                     </div>
                 </div>
 
-                <!-- 產業分析圖表 -->
-                <div id="industryCharts" class="sub-tab-content" style="display: none;">
-                    <div class="chart-container">
-                        <h2 class="chart-title">產業平均薪資排行 (113年度)</h2>
-                        <div class="chart-wrapper">
-                            <canvas id="industryAvgChart"></canvas>
-                        </div>
+                <div class="chart-container">
+                    <h2 class="chart-title">公司薪資成長率排行榜</h2>
+                    <div class="chart-wrapper">
+                        <canvas id="topGrowthChart"></canvas>
                     </div>
+                </div>
+            </div>
 
-                    <div class="chart-container">
-                        <h2 class="chart-title">產業薪資成長率排行</h2>
-                        <div class="chart-wrapper">
-                            <canvas id="industryGrowthChart"></canvas>
-                        </div>
+            <!-- 產業分析圖表 -->
+                <div id="industryCharts" class="sub-tab-content" style="display: none;">
+                <div class="chart-container">
+                    <h2 class="chart-title">產業平均薪資排行 (113年度)</h2>
+                    <div class="chart-wrapper">
+                        <canvas id="industryAvgChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h2 class="chart-title">產業薪資成長率排行</h2>
+                    <div class="chart-wrapper">
+                        <canvas id="industryGrowthChart"></canvas>
+                    </div>
                     </div>
                 </div>
 
@@ -1617,7 +1625,7 @@
                     }
                 }
             });
-
+            
             if (companyCharts.growth) companyCharts.growth.destroy();
             
             const growthCtx = document.getElementById('topGrowthChart').getContext('2d');
@@ -1679,7 +1687,7 @@
             });
 
             const displayCount = topN === 'all' ? industryStats.length : parseInt(topN);
-            
+
             // 產業平均薪資
             const topIndustries = _.orderBy(industryStats, ['avgSalary113'], order).slice(0, displayCount);
             
